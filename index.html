@@ -32,7 +32,8 @@
   </style>
   <!-- Preload images so transitions feel instant -->
   <link rel="preload" as="image" href="./images/image1.gif">
-  <link rel="preload" as="image" href="./images/image2.gif">
+  <link rel="preload" as="image" href="./images/oss.jpg">
+  <link rel="preload" as="image" href="./images/img2.jpg">
   <link rel="preload" as="image" href="./images/image3.gif">
   <link rel="preload" as="image" href="./images/image4.gif">
   <link rel="preload" as="image" href="./images/image5.gif">
@@ -48,21 +49,27 @@
         alt="Cute kitten with flowers"
         class="rounded-md h-[300px] object-cover"
       />
+       <img
+        id="ossImage"
+        src="./images/oss.jpg"
+        alt="Cute kitten with flowers"
+        class="rounded-md h-[300px] object-cover"
+      />
       <h1 id="valentineQuestion" class="text-4xl font-bold italic text-[#bd1e59] my-4">
-        Will you be my Valentine?
+        Vil du bi min Valentine?
       </h1>
       <div id="responseButtons" class="flex gap-4 pt-5 items-center">
         <button
           id="yesButton"
           class="bounce inline-flex items-center justify-center whitespace-nowrap rounded-md text-xl font-medium cursor-pointer px-4 py-2 bg-green-500 text-white transition-all duration-300 ease-in-out hover:bg-green-400 min-h-12 min-w-[75px]"
         >
-          Yes
+          Ja
         </button>
         <button
           id="noButton"
           class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-xl font-medium cursor-pointer px-4 py-2 bg-red-500 text-white transition-colors hover:bg-red-700 h-12 min-w-[75px]"
         >
-          No
+          Nei
         </button>
       </div>
     </section>
@@ -140,10 +147,30 @@
       });
 
       yesButton.addEventListener('click', () => {
-        imageDisplay.src = IMAGE_PATHS[IMAGE_PATHS.length - 1];
-        imageDisplay.alt = ALT_TEXTS[ALT_TEXTS.length - 1];
-        valentineQuestion.textContent = 'Yayyy!! :3';
+        // Update UI text and hide response buttons
+        valentineQuestion.textContent = 'YEY!! <3';
         responseButtons.style.display = 'none';
+
+  // Remove the oss.jpg image from the DOM if present
+  const ossImg = document.getElementById('ossImage');
+  if (ossImg) ossImg.remove();
+
+        // Try to show ./images/img2.jpg when the user says yes.
+        // If that file doesn't exist, try './images/oss.jpg' (already in repo),
+        // then fall back to the existing final gif.
+        const tryLoad = (src, onSuccess, onFail) => {
+          const img = new Image();
+          img.onload = () => onSuccess(src);
+          img.onerror = onFail;
+          img.src = src;
+        };
+
+        tryLoad('./images/img2.jpg', (s) => {
+          imageDisplay.src = s;
+          imageDisplay.alt = 'Celebration image';
+        }, () => {
+       
+        });
 
         // Heart-shaped confetti for a valentine theme
         const heart = confetti.shapeFromPath({
