@@ -72,6 +72,7 @@
           Nei
         </button>
       </div>
+      <p id="saveStatus" class="mt-4 text-sm text-[#bd1e59]"></p>
     </section>
   </main>
 
@@ -83,6 +84,22 @@
       const imageDisplay = document.getElementById('imageDisplay');
       const valentineQuestion = document.getElementById('valentineQuestion');
       const responseButtons = document.getElementById('responseButtons');
+      const saveStatus = document.getElementById('saveStatus');
+
+      // Optional runtime config. Add a script tag before this one to override values:
+      // window.VALENTINE_CONFIG = {
+      //   googleFormActionUrl: 'https://docs.google.com/forms/d/e/<form-id>/formResponse',
+      //   googleFormAnswerEntry: 'entry.1234567890',
+      //   googleFormVisitorEntry: 'entry.0987654321', // optional
+      //   notifyWebhookUrl: 'https://ntfy.sh/<topic>' // optional
+      // }
+      const CONFIG = {
+        googleFormActionUrl: '',
+        googleFormAnswerEntry: '',
+        googleFormVisitorEntry: '',
+        notifyWebhookUrl: '',
+        ...(window.VALENTINE_CONFIG || {}),
+      };
 
       // Configuration
       const GROWTH_PER_CLICK = 35;
@@ -123,6 +140,69 @@
       let buttonHeight = 48;
       let buttonWidth = 80;
       let fontSize = 20;
+      let hasSavedNo = false;
+
+      const getVisitorId = () => {
+        const storageKey = 'valentine_visitor_id';
+        let id = localStorage.getItem(storageKey);
+
+        if (!id) {
+          id = `visitor-${crypto.randomUUID()}`;
+          localStorage.setItem(storageKey, id);
+        }
+
+        return id;
+      };
+
+      const setStatus = (message, colorClass = 'text-[#bd1e59]') => {
+        saveStatus.className = `mt-4 text-sm ${colorClass}`;
+        saveStatus.textContent = message;
+      };
+
+      const recordAnswer = async (answer) => {
+        const { googleFormActionUrl, googleFormAnswerEntry, googleFormVisitorEntry, notifyWebhookUrl } = CONFIG;
+
+        if (!googleFormActionUrl || !googleFormAnswerEntry) {
+          setStatus('Tip: add Google Form settings in VALENTINE_CONFIG to save answers.');
+          return;
+        }
+
+        try {
+          const visitorId = getVisitorId();
+          const formBody = new URLSearchParams();
+          formBody.set(googleFormAnswerEntry, answer);
+
+          if (googleFormVisitorEntry) {
+            formBody.set(googleFormVisitorEntry, visitorId);
+          }
+
+          // Google Forms does not return CORS headers for browser JS, so `no-cors` is expected here.
+          // The request still gets recorded in the linked response sheet.
+          await fetch(googleFormActionUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+            body: formBody.toString(),
+          });
+
+          if (notifyWebhookUrl) {
+            await fetch(notifyWebhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                text: `Valentine response: ${answer}`,
+                answer,
+                visitorId,
+              }),
+            });
+          }
+
+          setStatus('Answer submitted ✨', 'text-green-700');
+        } catch (error) {
+          setStatus('Could not send answer. Check your Google Form config.', 'text-red-700');
+          console.error(error);
+        }
+      };
 
       noButton.addEventListener('click', () => {
         if (noClickCount >= MAX_NO_CLICKS) return;
@@ -144,6 +224,11 @@
 
         // Update "No" button text with increasingly desperate messages
         noButton.textContent = NO_BUTTON_MESSAGES[noClickCount];
+
+        if (!hasSavedNo) {
+          hasSavedNo = true;
+          void recordAnswer('no');
+        }
       });
 
       yesButton.addEventListener('click', () => {
@@ -182,6 +267,8 @@
         confetti({ ...defaults, particleCount: 50, scalar: 2 });
         confetti({ ...defaults, particleCount: 25, scalar: 3 });
         confetti({ ...defaults, particleCount: 10, scalar: 4 });
+
+        void recordAnswer('yes');
       });
     })();
   </script>

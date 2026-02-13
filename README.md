@@ -26,6 +26,53 @@ A cute, interactive web page to ask someone to be your Valentine. Features playf
 
 That's it -- no build step, no dependencies to install. Tailwind CSS and canvas-confetti are loaded via CDN.
 
+## Save Responses with Google Forms (easiest option)
+
+This project supports saving button clicks (`yes` / `no`) directly to a Google Form.
+
+### 1) Create a form
+
+Create a Google Form with at least one short-answer question, for example:
+
+- `Answer` (required)
+- `Visitor ID` (optional)
+
+### 2) Get the form endpoint + entry IDs
+
+1. Open your form and click **⋮ → Get pre-filled link**.
+2. Fill sample values and click **Get link**.
+3. Copy the URL and identify:
+   - form action URL: `https://docs.google.com/forms/d/e/<form-id>/formResponse`
+   - entry IDs from query params like `entry.123456789=sample`
+
+### 3) Add config in `index.html`
+
+Before the main `<script>` block, add:
+
+```html
+<script>
+  window.VALENTINE_CONFIG = {
+    googleFormActionUrl: 'https://docs.google.com/forms/d/e/<form-id>/formResponse',
+    googleFormAnswerEntry: 'entry.1234567890',
+    googleFormVisitorEntry: 'entry.0987654321', // optional
+    notifyWebhookUrl: 'https://ntfy.sh/<your-topic>' // optional
+  };
+</script>
+```
+
+### 4) Get notified of answers
+
+Choose one easy option:
+
+- **Google Sheets notifications**: Link form responses to a sheet, then enable notification rules in Sheets.
+- **Optional webhook** (`notifyWebhookUrl`): send instant alerts to ntfy, Discord webhook, Zapier/Make, etc.
+
+## Other easy alternatives
+
+- **Supabase**: more structured database if you want querying + auth later.
+- **Formspree/Basin**: very simple form endpoint for static sites.
+- **Discord webhook only**: quickest route if you just need notifications.
+
 ## Project Structure
 
 ```
