@@ -72,6 +72,7 @@
           Nei
         </button>
       </div>
+      <p id="saveStatus" class="mt-4 text-sm text-[#bd1e59]"></p>
     </section>
   </main>
 
@@ -83,6 +84,22 @@
       const imageDisplay = document.getElementById('imageDisplay');
       const valentineQuestion = document.getElementById('valentineQuestion');
       const responseButtons = document.getElementById('responseButtons');
+      const saveStatus = document.getElementById('saveStatus');
+
+      // Optional runtime config. Add a script tag before this one to override values:
+      // window.VALENTINE_CONFIG = {
+      //   supabaseUrl: 'https://<project-ref>.supabase.co',
+      //   supabaseAnonKey: '<public-anon-key>',
+      //   supabaseTable: 'valentine_answers',
+      //   notifyWebhookUrl: 'https://ntfy.sh/<topic>'
+      // }
+      const CONFIG = {
+        supabaseUrl: '',
+        supabaseAnonKey: '',
+        supabaseTable: 'valentine_answers',
+        notifyWebhookUrl: '',
+        ...(window.VALENTINE_CONFIG || {}),
+      };
 
       // Configuration
       const GROWTH_PER_CLICK = 35;
@@ -124,6 +141,72 @@
       let buttonWidth = 80;
       let fontSize = 20;
 
+      const getVisitorId = () => {
+        const storageKey = 'valentine_visitor_id';
+        let id = localStorage.getItem(storageKey);
+
+        if (!id) {
+          id = `visitor-${crypto.randomUUID()}`;
+          localStorage.setItem(storageKey, id);
+        }
+
+        return id;
+      };
+
+      const setStatus = (message, colorClass = 'text-[#bd1e59]') => {
+        saveStatus.className = `mt-4 text-sm ${colorClass}`;
+        saveStatus.textContent = message;
+      };
+
+      const recordAnswer = async (answer) => {
+        const { supabaseUrl, supabaseAnonKey, supabaseTable, notifyWebhookUrl } = CONFIG;
+
+        if (!supabaseUrl || !supabaseAnonKey) {
+          setStatus('Tip: configure Supabase keys in VALENTINE_CONFIG to save answers.');
+          return;
+        }
+
+        try {
+          const payload = {
+            answer,
+            visitor_id: getVisitorId(),
+            user_agent: navigator.userAgent,
+          };
+
+          const insertResponse = await fetch(`${supabaseUrl}/rest/v1/${supabaseTable}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: supabaseAnonKey,
+              Authorization: `Bearer ${supabaseAnonKey}`,
+              Prefer: 'return=minimal',
+            },
+            body: JSON.stringify(payload),
+          });
+
+          if (!insertResponse.ok) {
+            throw new Error(`Supabase save failed with status ${insertResponse.status}`);
+          }
+
+          if (notifyWebhookUrl) {
+            await fetch(notifyWebhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                text: `Valentine response: ${answer}`,
+                answer,
+                visitorId: payload.visitor_id,
+              }),
+            });
+          }
+
+          setStatus('Answer saved ✨', 'text-green-700');
+        } catch (error) {
+          setStatus('Could not save answer. Check your Supabase settings.', 'text-red-700');
+          console.error(error);
+        }
+      };
+
       noButton.addEventListener('click', () => {
         if (noClickCount >= MAX_NO_CLICKS) return;
 
@@ -144,6 +227,8 @@
 
         // Update "No" button text with increasingly desperate messages
         noButton.textContent = NO_BUTTON_MESSAGES[noClickCount];
+
+        void recordAnswer('no');
       });
 
       yesButton.addEventListener('click', () => {
@@ -182,6 +267,8 @@
         confetti({ ...defaults, particleCount: 50, scalar: 2 });
         confetti({ ...defaults, particleCount: 25, scalar: 3 });
         confetti({ ...defaults, particleCount: 10, scalar: 4 });
+
+        void recordAnswer('yes');
       });
     })();
   </script>
