@@ -76,6 +76,17 @@
     </section>
   </main>
 
+<script>
+  window.VALENTINE_CONFIG = {
+    googleFormActionUrl: 'https://docs.google.com/forms/d/e/1FAIpQLSe_A6ExjetfsrVo6zSGpn16CrqM3J6NSvT6CdPV-4fSGLhHJw/formResponse',
+    googleFormAnswerEntry: 'entry.86242847',
+    // googleFormVisitorEntry: '',
+    // notifyWebhookUrl: ''
+  };
+</script>
+
+
+
   <script>
     (() => {
       // DOM references
@@ -197,7 +208,7 @@
             });
           }
 
-          setStatus('Answer submitted ✨', 'text-green-700');
+          setStatus('Svar sendt ;) ', 'text-green-700');
         } catch (error) {
           setStatus('Could not send answer. Check your Google Form config.', 'text-red-700');
           console.error(error);
